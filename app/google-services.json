@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "151816197885",
+    "project_id": "gamify-gold",
+    "storage_bucket": "gamify-gold.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151816197885:android:8f26b1b509647cfe789094",
+        "android_client_info": {
+          "package_name": "com.fclarke.gamifygold"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151816197885-n08jh175uho81nptihebbo12i2broj81.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8_s6PL1LcwC5AArYrBTIYYwW1OqJkWxY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151816197885-n08jh175uho81nptihebbo12i2broj81.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
