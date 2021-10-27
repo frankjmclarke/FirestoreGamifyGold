@@ -32,7 +32,6 @@ import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.model.DocumentKey
 
 //data class Card(val name: String, val id: Int, val  map:HashMap<String, Any>)
 class MainFragment : Fragment() {
@@ -42,7 +41,14 @@ class MainFragment : Fragment() {
         const val SIGN_IN_RESULT_CODE = 1001
     }
 
+    val cardsArr = ArrayList<Int>()
+    //val cardsArr: ArrayList<Int> = arrayListOf()
+
+
     private val cards: Cards = Cards()
+    val thePlayer =
+        Player(Enemy.HERO.theName, Enemy.HERO.ordinal, Enemy.DEMON.theName, 3, 0, 0, cardsArr)
+
 
     // Get a reference to the ViewModel scoped to this Fragment
     private val viewModel by viewModels<LoginViewModel>()
@@ -52,7 +58,7 @@ class MainFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false)
-
+        cardsArr.add(0)
         // TODO Remove the two lines below once observeAuthenticationState is implemented.
         binding.welcomeText.text = viewModel.getFactToDisplay(requireContext())
         binding.authButton.text = getString(R.string.login_btn)
@@ -63,54 +69,42 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         observeAuthenticationState()
-
         binding.authButton.setOnClickListener { launchSignInFlow() } //Login button
-        cards.initCards()
+
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         //a new user signed up via email address
         super.onActivityResult(requestCode, resultCode, data)
+
         if (requestCode == SIGN_IN_RESULT_CODE) {
             val response = IdpResponse.fromResultIntent(data)
             if (resultCode == Activity.RESULT_OK) {
                 // User successfully signed in
+                val email: String = response?.email.toString()
                 Log.i(//this works
                     TAG,
                     "Successfully signed in user ${FirebaseAuth.getInstance().currentUser?.displayName}!"
                 )
-                //dealHand()
+
                 //addCards()
-                FirebaseUtils().fireStoreDatabase.collection("cards")
+                FirebaseUtils().db.collection("cards")
                     .get()
                     .addOnSuccessListener { querySnapshot ->
                         querySnapshot.forEach { document ->
                             Log.d(TAG, "Read document with ID ${document.id} ${document["name"]}")
                             //deleteAll("cards")
-
-                            val dd = document.get("path")
-                            val t = document.data["value"] as HashMap<String, Any>
-                            if (t != null) {
-                                val xz = t.get("ref")
-
-                                if (xz != null) {
-                                    val x=xz as DocumentReference
-                                    val y = x.path as String
-
-
-                                    FirebaseUtils().fireStoreDatabase.document(y)
-                                        .get()
-                                        .addOnSuccessListener { querySnapshot ->
-                                            var xxx = querySnapshot
-                                            var dat = xxx.data as HashMap<String, Any>
-                                            var dv=dat["value"]as HashMap<String, Any>
-                                            var name = dv["name"]
-                                            var xxex = 0
-                                        }
-                                        .addOnFailureListener { exception ->
-                                            Log.w(TAG, "Error getting documents $exception")
-                                        }
-                                }
+                            val value: HashMap<*, *>? =
+                                document.data["value"] as? HashMap<*, *>//?as is nullable, so no crashing if null
+                            val ref = value?.get("ref")//foreign key
+                            val docRef: DocumentReference? = ref as? DocumentReference
+                            docRef?.get()?.addOnSuccessListener { querySnapshot ->//if not null
+                                val dat: HashMap<*, *>? = querySnapshot.data as? HashMap<*, *>
+                                val dv: HashMap<*, *>? = dat?.get("value") as? HashMap<*, *>
+                                var name = dv?.get("name")
+                                var xxex = 0
+                            }?.addOnFailureListener { exception ->
+                                Log.w(TAG, "Error getting documents $exception")
                             }
                         }
                     }
@@ -128,20 +122,16 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun dealHand() {
+    private fun dealHand(player: Player) {
         var al = ArrayList<Int>()
         al.add(Cards.CARDS.FIGHTING_WORDS.ordinal)
         al.add(Cards.CARDS.DIVINE_INSPIRATION.ordinal)
         al.add(Cards.CARDS.CURE_WOUNDS.ordinal)
         al.add(Cards.CARDS.HIGH_CHARISMA.ordinal)
+        player.cards = al
 
-        //var al = arrayListOf<Int>(CARDS.FINGER_WAG_OF_JUDGEMENT.ordinal,CARDS.DIVINE_SMITE.ordinal,CARDS.DIVINE_INSPIRATION.ordinal)
-
-        val docData = HashMap<String, ArrayList<Int>>()
-        docData["player"] = al
-
-        FirebaseUtils().fireStoreDatabase.collection("cardhand").document("player")
-            .set(docData)
+        FirebaseUtils().db.collection("player").document(player.name)
+            .set(player.getMap())
             .addOnSuccessListener {
                 Log.d(TAG, "Added document with ID demon")
             }
@@ -157,7 +147,7 @@ class MainFragment : Fragment() {
     }
 
     private fun deleteAll(collectionPath: String) {
-        FirebaseUtils().fireStoreDatabase.collection(collectionPath)
+        FirebaseUtils().db.collection(collectionPath)
             .get()
             .addOnSuccessListener { querySnapshot ->
                 querySnapshot.forEach { document ->
@@ -176,7 +166,7 @@ class MainFragment : Fragment() {
         hashMap: MutableMap.MutableEntry<Int, HashMap<String, Any>>
     ) {
 
-        FirebaseUtils().fireStoreDatabase.collection(collectionPath)
+        FirebaseUtils().db.collection(collectionPath)
             .document(hashMap.key.toString())
             .set(hashMap)
             .addOnSuccessListener {
@@ -189,14 +179,14 @@ class MainFragment : Fragment() {
     }
 
     private fun deleteCard(collection: String, document: String) {
-        FirebaseUtils().fireStoreDatabase.collection(collection).document(document)
+        FirebaseUtils().db.collection(collection).document(document)
             .delete()
             .addOnSuccessListener { Log.d(TAG, "DocumentSnapshot successfully deleted!") }
             .addOnFailureListener { e -> Log.w(TAG, "Error deleting document", e) }
     }
 
     private fun readData(table: String) {
-        FirebaseUtils().fireStoreDatabase.collection(table)
+        FirebaseUtils().db.collection(table)
             .get()
             .addOnSuccessListener { querySnapshot ->
                 querySnapshot.forEach { document ->
@@ -225,6 +215,8 @@ class MainFragment : Fragment() {
                     binding.authButton.setOnClickListener {
                         AuthUI.getInstance().signOut(requireContext())
                     }
+
+                    dealHand(thePlayer)
                 }
                 else -> {
                     binding.welcomeText.text = factToDisplay
